@@ -36,7 +36,7 @@ migrate: makemigrations ## Apply migrations
 	python manage.py migrate
 
 runserver: migrate  ## Run the Django development server
-	python manage.py runserver 0.0.0.0:8000
+	python manage.py runserver 0.0.0.0:8005
 
 superuser: ## Create a superuser
 	@python manage.py createsuperuser --no-input
