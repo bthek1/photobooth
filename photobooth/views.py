@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView
+
 from .models import Event, Photo, PhotoboothSettings
 
 
@@ -177,7 +178,8 @@ def generate_qr_code(request, photo_id):
 
 def event_gallery_qr(request, event_id):
     """Generate QR code for event gallery"""
-    event = get_object_or_404(Event, id=event_id)
+    # Validate event exists (we don't need the object, just validation)
+    get_object_or_404(Event, id=event_id)
 
     # Build full URL for gallery
     gallery_url = request.build_absolute_uri(
@@ -236,4 +238,5 @@ def get_event_info(request, event_id):
 # Home/Landing Views
 def home_view(request):
     """Landing page"""
+    return render(request, "photobooth/home.html")
     return render(request, "photobooth/home.html")
