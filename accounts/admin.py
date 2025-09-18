@@ -1,17 +1,12 @@
-import django
-from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.shortcuts import resolve_url
-from django.template.loader import render_to_string
-from django.utils.translation import gettext_lazy as _
 
-from .forms import CustomUserChangeForm, CustomUserCreationForm
+from .forms import CustomUserChangeForm, CustomUserCreationFormAdmin
 from .models import CustomUser
 
 
 class CustomUserAdmin(UserAdmin):
-    add_form = CustomUserCreationForm
+    add_form = CustomUserCreationFormAdmin
     form = CustomUserChangeForm
     model = CustomUser
 
@@ -63,5 +58,6 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
+
 
 admin.site.register(CustomUser, CustomUserAdmin)

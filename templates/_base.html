@@ -67,12 +67,30 @@
                 Settings
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#">{{ user.email }}</a></li>
-                <li>
-                  <hr class="dropdown-divider">
-                </li>
-                <li><a class="dropdown-item" href="{% url 'account_change_password' %}">Change password</a></li>
-                <li><a class="dropdown-item" href="{% url 'account_logout' %}">Sign out</a></li>
+                <li><h6 class="dropdown-header">
+                  <i class="fas fa-user-circle me-2"></i>
+                  {% if user.first_name or user.last_name %}
+                    {{ user.first_name }} {{ user.last_name }}
+                  {% else %}
+                    {{ user.email }}
+                  {% endif %}
+                </h6></li>
+                {% if user.first_name or user.last_name %}
+                <li><small class="dropdown-item-text text-muted">{{ user.email }}</small></li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                  <i class="fas fa-user-edit me-2"></i>Edit Profile
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'photobooth:event_list' %}">
+                  <i class="fas fa-calendar-alt me-2"></i>My Events
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'account_change_password' %}">
+                  <i class="fas fa-key me-2"></i>Change Password
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'account_logout' %}">
+                  <i class="fas fa-sign-out-alt me-2"></i>Sign Out
+                </a></li>
               </ul>
             </li>
           </ul>
@@ -80,8 +98,12 @@
         {% else %}
         <div class="mr-auto">
           <form class="form d-flex">
-            <a href="{% url 'account_login' %}" class="btn btn-outline-secondary">Log in</a>
-            <a href="{% url 'photobooth:signup' %}" class="btn btn-primary ms-2">Sign up</a>
+            <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
+              <i class="fas fa-sign-in-alt me-1"></i>Sign In
+            </a>
+            <a href="{% url 'account_signup' %}" class="btn btn-primary ms-2">
+              <i class="fas fa-user-plus me-1"></i>Create Account
+            </a>
           </form>
         </div>
         {% endif %}

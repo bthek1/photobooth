@@ -5,7 +5,6 @@ from io import BytesIO
 
 import qrcode
 from django.contrib import messages
-from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.files.base import ContentFile
 from django.http import Http404, HttpResponse, JsonResponse
@@ -14,23 +13,8 @@ from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView
 
-from .forms import CustomUserCreationForm, EventCodeForm, EventForm
+from .forms import EventCodeForm, EventForm
 from .models import Event, Photo, PhotoboothSettings
-
-
-# Authentication Views
-def signup_view(request):
-    """User registration view"""
-    if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-            messages.success(request, "Account created successfully!")
-            return redirect("photobooth:event_list")
-    else:
-        form = CustomUserCreationForm()
-    return render(request, "account/signup.html", {"form": form})
 
 
 # Event Management Views

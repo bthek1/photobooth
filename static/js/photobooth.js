@@ -48,8 +48,15 @@ class PhotoboothCamera {
     
     async loadCameraSettings() {
         try {
-            const response = await fetch('/photobooth/api/camera-settings/');
-            this.cameraSettings = await response.json();
+            // Check if PhotoboothAPI is available, otherwise use legacy
+            if (typeof PhotoboothAPI !== 'undefined') {
+                const api = new PhotoboothAPI();
+                this.cameraSettings = await api.getCameraSettings();
+            } else {
+                // Legacy API call
+                const response = await fetch('/photobooth/api/camera-settings/');
+                this.cameraSettings = await response.json();
+            }
         } catch (error) {
             console.error('Failed to load camera settings:', error);
             // Use default settings
@@ -202,6 +209,44 @@ class PhotoboothCamera {
     }
     
     async sendPhoto(imageData) {
+        try {
+            // Check if PhotoboothAPI is available
+            if (typeof PhotoboothAPI === 'undefined') {
+                console.error('PhotoboothAPI not loaded, falling back to legacy method');
+                return this.sendPhotoLegacy(imageData);
+            }
+            
+            // Use new REST API
+            const api = new PhotoboothAPI();
+            const result = await api.capturePhoto(
+                this.currentEvent.id,
+                imageData,
+                this.guestNameInput.value.trim(),
+                this.guestEmailInput.value.trim()
+            );
+            
+            if (result.success) {
+                this.lastPhotoId = result.photo_id;
+                this.showPhotoTakenModal(imageData);
+                this.updatePhotoCount();
+            } else {
+                throw new Error(result.message || 'Failed to capture photo');
+            }
+        } catch (error) {
+            console.error('Photo capture failed:', error);
+            // Try legacy method as fallback
+            console.log('Attempting legacy photo capture...');
+            try {
+                await this.sendPhotoLegacy(imageData);
+            } catch (legacyError) {
+                console.error('Legacy photo capture also failed:', legacyError);
+                this.showError('Failed to capture photo. Please try again.');
+            }
+        }
+    }
+    
+    // Legacy method for compatibility (will be removed)
+    async sendPhotoLegacy(imageData) {
         const photoData = {
             image: imageData,
             event_id: this.currentEvent.id,
@@ -322,7 +367,11 @@ class PhotoboothCamera {
 document.addEventListener('DOMContentLoaded', () => {
     // Only initialize if we're on a page with camera elements
     if (document.getElementById('camera-video')) {
-        new PhotoboothCamera();
+        // Small delay to ensure all scripts are loaded
+        setTimeout(() => {
+            console.log('PhotoboothAPI available:', typeof PhotoboothAPI !== 'undefined');
+            new PhotoboothCamera();
+        }, 100);
     }
 });
 

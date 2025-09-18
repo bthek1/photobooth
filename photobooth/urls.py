@@ -7,7 +7,6 @@ app_name = "photobooth"
 urlpatterns = [
     # Home and authentication
     path("", views.home_view, name="home"),
-    path("signup/", views.signup_view, name="signup"),
     # Event management (requires login)
     path("events/", views.EventListView.as_view(), name="event_list"),
     path("events/create/", views.EventCreateView.as_view(), name="event_create"),
@@ -24,7 +23,7 @@ urlpatterns = [
         views.EventGalleryView.as_view(),
         name="event_gallery",
     ),
-    # API endpoints
+    # Legacy API endpoints (will be deprecated)
     path("api/capture/", views.capture_photo, name="capture_photo"),
     path("api/camera-settings/", views.get_camera_settings, name="camera_settings"),
     path("api/event/<uuid:event_id>/info/", views.get_event_info, name="event_info"),

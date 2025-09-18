@@ -1,30 +1,14 @@
+"""
+DEPRECATED: These forms are being replaced with REST API endpoints.
+See API_MIGRATION.md for the new API-based approach.
+"""
+
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import UserCreationForm
 
 from .models import Event, Photo
 
 User = get_user_model()
-
-
-class CustomUserCreationForm(UserCreationForm):
-    """Custom user registration form"""
-
-    class Meta:
-        model = User
-        fields = ("email", "first_name", "last_name", "password1", "password2")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["email"].widget.attrs.update({"class": "form-control"})
-        self.fields["first_name"].widget.attrs.update(
-            {"class": "form-control", "placeholder": "First Name (optional)"}
-        )
-        self.fields["last_name"].widget.attrs.update(
-            {"class": "form-control", "placeholder": "Last Name (optional)"}
-        )
-        self.fields["password1"].widget.attrs.update({"class": "form-control"})
-        self.fields["password2"].widget.attrs.update({"class": "form-control"})
 
 
 class EventForm(forms.ModelForm):

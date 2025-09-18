@@ -41,9 +41,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
-
-    # TODO: Uncomment the following line and add the required fields
-    # REQUIRED_FIELDS = ["first_name", "last_name"]
+    REQUIRED_FIELDS = []  # Only email is required for login; first_name/last_name are optional
 
     def __str__(self):
         return self.email
