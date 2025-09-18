@@ -1,0 +1,39 @@
+# makedb script for install have raw passwords
+makedb.sh
+createdb.sql
+dropdb.sql
+
+# remake with 'manage.py collectstatic'
+staticfiles/
+
+# OSX #
+.DS_Store
+
+
+# Byte-compiled / optimized / DLL files #
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django #
+*.log*
+db.sqlite3
+media
+
+# Virtual environment
+.venv
+.env
+
+backup
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+
+# Coverage reports
+.coverage
+coverage.xml
+htmlcov/
+cov.json

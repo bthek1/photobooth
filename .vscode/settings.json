@@ -1,0 +1,41 @@
+{
+  // Use Pytest
+  "python.testing.pytestArgs": ["."],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "playwright.env": {
+    "DJANGO_SETTINGS_MODULE": "rmproject.settings"
+  },
+
+  // Format Python with Ruff
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll.ruff": "explicit"
+    }
+  },
+
+  // Format JS with Prettier
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Format JSON with built-in
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+
+  // Optional: TypeScript support
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Python module resolution
+  "python.analysis.extraPaths": [
+    "./crms/clinico/cliniko-api-client",
+    "./crms/clinico/autogen"
+  ],
+  "livePreview.defaultPreviewPath": "/htmlcov/index.html"
+}
