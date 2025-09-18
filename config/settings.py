@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     # Local
     "accounts",
     "pages",
+    "photobooth",
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
@@ -158,6 +159,10 @@ STATIC_URL = "/static/"
 
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#std:setting-STATICFILES_DIRS
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Media files (user uploaded content)
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
 
 # https://whitenoise.readthedocs.io/en/latest/django.html
 STORAGES = {

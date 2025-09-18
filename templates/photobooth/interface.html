@@ -1,0 +1,136 @@
+{% extends "_base.html" %}
+{% load static %}
+
+{% block title %}Wedding Photobooth{% endblock title %}
+
+{% block content %}
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <!-- Camera Preview Section -->
+        <div class="col-md-8 d-flex flex-column">
+            <div class="card h-100 photobooth-camera-card">
+                <div class="card-header bg-primary text-white text-center">
+                    <h2 class="mb-0">{{ settings.welcome_message }}</h2>
+                    <p class="mb-0">{{ settings.instructions }}</p>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center align-items-center position-relative">
+                    <!-- Camera Video Element -->
+                    <video id="camera-video" class="camera-preview" autoplay muted playsinline></video>
+                    
+                    <!-- Countdown Overlay -->
+                    <div id="countdown-overlay" class="countdown-overlay d-none">
+                        <div class="countdown-number">3</div>
+                    </div>
+                    
+                    <!-- Camera Controls -->
+                    <div class="camera-controls mt-3">
+                        <button id="capture-btn" class="btn btn-success btn-lg px-5">
+                            <i class="fas fa-camera"></i> Take Photo
+                        </button>
+                        <button id="retake-btn" class="btn btn-warning btn-lg px-4 d-none ms-3">
+                            <i class="fas fa-redo"></i> Retake
+                        </button>
+                    </div>
+                    
+                    <!-- Flash Effect -->
+                    <div id="flash-effect" class="flash-effect d-none"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Controls and Info Section -->
+        <div class="col-md-4 d-flex flex-column">
+            <!-- Session Info -->
+            {% if active_session %}
+            <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Current Event</h5>
+                </div>
+                <div class="card-body">
+                    <h6>{{ active_session.name }}</h6>
+                    <p class="mb-1"><small class="text-muted">Photos taken: <span id="photo-count">{{ active_session.photo_count }}</span></small></p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Guest Information -->
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">Optional: Leave Your Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="guest-name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="guest-name" placeholder="Your name (optional)">
+                    </div>
+                    <div class="mb-3">
+                        <label for="guest-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="guest-email" placeholder="your@email.com (optional)">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Photos -->
+            {% if settings.show_gallery_preview %}
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">Recent Photos</h6>
+                </div>
+                <div class="card-body">
+                    <div id="recent-photos" class="recent-photos-grid">
+                        <!-- Photos will be loaded here -->
+                    </div>
+                    <div class="text-center mt-2">
+                        <a href="{% url 'photobooth:gallery' %}" class="btn btn-sm btn-outline-success">View All Photos</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Photo Taken Modal -->
+<div class="modal fade" id="photoTakenModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Photo Taken Successfully! 📸</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="photo-preview-container">
+                    <!-- Photo preview will be shown here -->
+                </div>
+                <div class="mt-3">
+                    <h6>Get your photo:</h6>
+                    <div class="d-flex justify-content-center gap-3 mt-3">
+                        <button id="download-photo-btn" class="btn btn-primary">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <button id="show-qr-btn" class="btn btn-info">
+                            <i class="fas fa-qrcode"></i> Show QR Code
+                        </button>
+                    </div>
+                </div>
+                <div id="qr-code-container" class="mt-3 d-none">
+                    <h6>Scan to download:</h6>
+                    <div id="qr-code"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button id="take-another-btn" class="btn btn-success">Take Another Photo</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/photobooth.css' %}">
+{% endblock extra_css %}
+
+{% block extra_js %}
+<script src="{% static 'js/photobooth.js' %}"></script>
+{% endblock extra_js %}

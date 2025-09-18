@@ -13,7 +13,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - "POSTGRES_HOST_AUTH_METHOD=trust"
+      - POSTGRES_DB=photobooth_db
+      - POSTGRES_USER=photobooth_user
+      - POSTGRES_PASSWORD=photobooth_pass
+    ports:
+      - "5432:5432"
 
 volumes:
   postgres_data:

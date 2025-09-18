@@ -1,0 +1,174 @@
+{% extends "_base.html" %}
+{% load static %}
+
+{% block title %}Photo Gallery{% endblock title %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>Photo Gallery</h1>
+                    {% if session %}
+                        <h4 class="text-muted">{{ session.name }}</h4>
+                    {% endif %}
+                </div>
+                <div>
+                    <a href="{% url 'photobooth:interface' %}" class="btn btn-primary">
+                        <i class="fas fa-camera"></i> Back to Photobooth
+                    </a>
+                    {% if session %}
+                        <a href="{% url 'photobooth:gallery_qr' session_id=session.id %}" class="btn btn-info" target="_blank">
+                            <i class="fas fa-qrcode"></i> Gallery QR Code
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if photos %}
+        <div class="row">
+            {% for photo in photos %}
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card photo-card">
+                        <div class="card-img-container">
+                            <img src="{{ photo.image.url }}" class="card-img-top photo-thumbnail" alt="Photo" 
+                                 data-bs-toggle="modal" data-bs-target="#photoModal{{ photo.id }}">
+                            <div class="photo-overlay">
+                                <div class="photo-actions">
+                                    <button class="btn btn-sm btn-light" onclick="downloadPhoto('{{ photo.id }}')">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light" onclick="showQRCode('{{ photo.id }}')">
+                                        <i class="fas fa-qrcode"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-2">
+                            <small class="text-muted">
+                                {{ photo.taken_at|date:"M d, Y H:i" }}
+                                {% if photo.guest_name %}
+                                    - {{ photo.guest_name }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Photo Modal -->
+                <div class="modal fade" id="photoModal{{ photo.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    Photo from {{ photo.taken_at|date:"M d, Y H:i" }}
+                                    {% if photo.guest_name %}
+                                        - {{ photo.guest_name }}
+                                    {% endif %}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <img src="{{ photo.image.url }}" class="img-fluid" alt="Full size photo">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="downloadPhoto('{{ photo.id }}')">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="showQRCode('{{ photo.id }}')">
+                                    <i class="fas fa-qrcode"></i> QR Code
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <nav aria-label="Photo gallery pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="row">
+            <div class="col-12 text-center">
+                <div class="empty-gallery">
+                    <i class="fas fa-camera fa-5x text-muted mb-3"></i>
+                    <h3>No photos yet!</h3>
+                    <p class="text-muted">Start taking photos to build your gallery.</p>
+                    <a href="{% url 'photobooth:interface' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-camera"></i> Take First Photo
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Download QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>Scan this QR code to download the photo:</p>
+                <div id="qr-code-display"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/photobooth.css' %}">
+{% endblock extra_css %}
+
+{% block extra_js %}
+<script>
+function downloadPhoto(photoId) {
+    window.open(`/photobooth/download/${photoId}/`, '_blank');
+}
+
+function showQRCode(photoId) {
+    const qrDisplay = document.getElementById('qr-code-display');
+    qrDisplay.innerHTML = `<img src="/photobooth/qr/${photoId}/" class="img-fluid" alt="QR Code">`;
+    new bootstrap.Modal(document.getElementById('qrModal')).show();
+}
+</script>
+{% endblock extra_js %}
