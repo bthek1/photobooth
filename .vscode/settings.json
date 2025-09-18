@@ -1,10 +1,16 @@
 {
-  // Use Pytest
+  // Use Pytest with proper Django test settings
   "python.testing.pytestArgs": ["."],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "playwright.env": {
-    "DJANGO_SETTINGS_MODULE": "rmproject.settings"
+  "python.testing.pytestPath": "./.venv/bin/pytest",
+  
+  // Set environment variables for testing
+  "python.terminal.activateEnvironment": true,
+  "python.defaultInterpreterPath": "./.venv/bin/python",
+  "python.testing.pytestEnvVars": {
+    "DJANGO_SETTINGS_MODULE": "config.settings",
+    "TESTING": "1"
   },
 
   // Format Python with Ruff

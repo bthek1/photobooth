@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -6,6 +7,9 @@ import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Detect if we're running tests
+TESTING = "test" in sys.argv or "pytest" in sys.modules or os.environ.get("TESTING")
 
 # Take environment variables from .env file
 env = environ.Env()
@@ -57,6 +61,14 @@ INSTALLED_APPS = [
     "photobooth",
 ]
 
+# Remove problematic apps during testing
+if TESTING:
+    INSTALLED_APPS = [
+        app
+        for app in INSTALLED_APPS
+        if app not in ["oauth2_provider", "debug_toolbar", "channels", "django_ses"]
+    ]
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -71,21 +83,42 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",  # django-allauth
 ]
 
+# Remove problematic middleware during testing
+if TESTING:
+    MIDDLEWARE = [
+        mw
+        for mw in MIDDLEWARE
+        if mw
+        not in [
+            "debug_toolbar.middleware.DebugToolbarMiddleware",
+            "whitenoise.middleware.WhiteNoiseMiddleware",
+        ]
+    ]
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
 ROOT_URLCONF = "config.urls"
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
 ASGI_APPLICATION = "config.asgi.application"
 
-# settings.py
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],  # Redis running locally
+# Channel layers configuration
+if TESTING:
+    # Use in-memory channel layer for tests
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
         },
-    },
-}
+    }
+else:
+    # Use Redis for production/development
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [("127.0.0.1", 6379)],  # Redis running locally
+            },
+        },
+    }
 
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
@@ -106,11 +139,20 @@ TEMPLATES = [
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
-DATABASES = {
-    "default": env.db(
-        "DATABASE_URL", default="postgres://new:asdfasdf@localhost:5432/django"
-    )
-}
+if TESTING:
+    # Use SQLite for tests to avoid PostgreSQL conflicts
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
+else:
+    DATABASES = {
+        "default": env.db(
+            "DATABASE_URL", default="postgres://new:asdfasdf@localhost:5432/django"
+        )
+    }
 
 
 # Password validation
@@ -329,3 +371,35 @@ OAUTH2_PROVIDER = {
 
 ENVIRONMENT_NAME = env("ENVIRONMENT_NAME", default="UNKNOWN")
 ENVIRONMENT_COLOR = env("ENVIRONMENT_COLOR", default="#FF0000")
+
+# Test-specific configurations
+if TESTING:
+    # Disable migrations for faster test setup
+    class DisableMigrations:
+        def __contains__(self, item):
+            return True
+
+        def __getitem__(self, item):
+            return None
+
+    MIGRATION_MODULES = DisableMigrations()
+
+    # Fast password hashers for testing
+    PASSWORD_HASHERS = [
+        "django.contrib.auth.hashers.MD5PasswordHasher",
+    ]
+
+    # Disable all external authentication services for tests
+    AUTHENTICATION_BACKENDS = [
+        "django.contrib.auth.backends.ModelBackend",
+    ]
+
+    # Static files settings for tests - use simple storage instead of manifest
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }

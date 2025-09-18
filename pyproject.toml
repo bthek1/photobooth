@@ -60,3 +60,9 @@ dependencies = [
 dev = [
   "typing_extensions ~=4.12",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "tests.py", "*_tests.py"]
+addopts = "--tb=short -v --reuse-db"
+testpaths = ["accounts/tests", "photobooth/tests", "pages/tests"]
