@@ -59,22 +59,22 @@ TESTING=1 uv run pytest accounts/tests/
 2. Press `F5` and select "Django Tests" configuration
 3. Or right-click on a test in the Test Explorer and select "Debug Test"
 
-## 🔧 Configuration Files Created/Updated
+## 🔧 Configuration Files Updated
 
-- **pytest.ini** - Main pytest configuration
-- **.vscode/settings.json** - VS Code Python extension settings
-- **.vscode/launch.json** - Debug configurations
-- **run_tests.sh** - General test runner script that handles environment conflicts
-- **vscode_test_runner.sh** - VS Code-specific test runner with explicit environment setup
+- **config/settings.py** - Integrated test detection and configuration
+- **pyproject.toml** - Pytest configuration in `[tool.pytest.ini_options]` section
+- **.vscode/settings.json** - VS Code Python extension settings with environment variables
+- **.vscode/launch.json** - Debug configurations for tests and Django server
 
 ## ✅ Verification
 
 Tests are now working correctly:
 
-- ✅ All 22 model tests pass
+- ✅ All 63 tests pass (22 model tests + 11 view tests + 30 other tests)
 - ✅ SQLite in-memory database is used for tests (not PostgreSQL)
-- ✅ No database conflicts or "relation already exists" errors
+- ✅ No database conflicts or static files errors
 - ✅ VS Code can discover and run tests through the Test Explorer
+- ✅ Streamlined configuration with no extra scripts needed
 
 ## 🐛 If Tests Still Don't Work
 
