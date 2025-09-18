@@ -9,7 +9,7 @@ urlpatterns = [
     path("", views.home_view, name="home"),
     # Event management (requires login)
     path("events/", views.EventListView.as_view(), name="event_list"),
-    path("events/create/", views.EventCreateView.as_view(), name="event_create"),
+    path("events/create/", views.event_create_view, name="event_create"),
     path(
         "events/<uuid:pk>/",
         views.EventDetailView.as_view(),

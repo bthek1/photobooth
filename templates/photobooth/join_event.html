@@ -14,27 +14,25 @@
                     <p class="lead">Enter your event code to join the photobooth session</p>
                 </div>
                 
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    {% if form.errors %}
-                        <div class="alert alert-danger">
-                            {% for field_errors in form.errors.values %}
-                                {% for error in field_errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+                <form id="joinEventForm">
+                    <div id="error-messages" class="alert alert-danger d-none"></div>
+                    <div id="success-messages" class="alert alert-success d-none"></div>
                     
                     <div class="mb-4">
-                        <label for="{{ form.code.id_for_label }}" class="form-label">Event Code</label>
-                        {{ form.code }}
+                        <label for="eventCode" class="form-label">Event Code</label>
+                        <input type="text" 
+                               id="eventCode" 
+                               name="code" 
+                               class="form-control" 
+                               placeholder="Enter event code"
+                               style="text-transform: uppercase;"
+                               maxlength="8"
+                               required>
                         <div class="form-text">Enter the 6-character code provided by your event host</div>
                     </div>
                     
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="submit" class="btn btn-primary btn-lg" id="joinButton">
                             <i class="fas fa-sign-in-alt"></i> Join Event
                         </button>
                     </div>
@@ -51,4 +49,66 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('joinEventForm');
+    const errorDiv = document.getElementById('error-messages');
+    const successDiv = document.getElementById('success-messages');
+    const joinButton = document.getElementById('joinButton');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const code = document.getElementById('eventCode').value.trim().toUpperCase();
+        
+        if (!code) {
+            showError('Please enter an event code');
+            return;
+        }
+        
+        try {
+            joinButton.disabled = true;
+            joinButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining...';
+            
+            const response = await fetch('/api/photobooth/events/join/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ code: code })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showSuccess('Event found! Redirecting to photobooth...');
+                setTimeout(() => {
+                    window.location.href = `/event/${data.event_id}/booth/`;
+                }, 1000);
+            } else {
+                showError(data.error || 'Invalid or inactive event code');
+            }
+        } catch (error) {
+            showError('Network error. Please try again.');
+        } finally {
+            joinButton.disabled = false;
+            joinButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Join Event';
+        }
+    });
+    
+    function showError(message) {
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('d-none');
+        successDiv.classList.add('d-none');
+    }
+    
+    function showSuccess(message) {
+        successDiv.textContent = message;
+        successDiv.classList.remove('d-none');
+        errorDiv.classList.add('d-none');
+    }
+});
+</script>
 {% endblock content %}

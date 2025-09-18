@@ -4,16 +4,14 @@ import uuid
 from io import BytesIO
 
 import qrcode
-from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.files.base import ContentFile
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse, reverse_lazy
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import CreateView, DetailView, ListView
-
-from .forms import EventCodeForm, EventForm
+from django.views.generic import DetailView, ListView
 from .models import Event, Photo, PhotoboothSettings
 
 
@@ -29,21 +27,10 @@ class EventListView(LoginRequiredMixin, ListView):
         return Event.objects.filter(created_by=self.request.user)
 
 
-class EventCreateView(LoginRequiredMixin, CreateView):
-    """Create new event"""
-
-    model = Event
-    form_class = EventForm
-    template_name = "photobooth/event_create.html"
-    success_url = reverse_lazy("photobooth:event_list")
-
-    def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        messages.success(
-            self.request,
-            f'Event "{form.instance.name}" created with code: {form.instance.code}',
-        )
-        return super().form_valid(form)
+@login_required
+def event_create_view(request):
+    """Create new event - uses REST API via JavaScript"""
+    return render(request, "photobooth/event_create.html")
 
 
 class EventDetailView(LoginRequiredMixin, DetailView):
@@ -58,16 +45,8 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 
 
 def join_event_view(request):
-    """Join event with code"""
-    if request.method == "POST":
-        form = EventCodeForm(request.POST)
-        if form.is_valid():
-            code = form.cleaned_data["code"]
-            event = Event.objects.get(code=code, is_active=True)
-            return redirect("photobooth:event_booth", event_id=event.id)
-    else:
-        form = EventCodeForm()
-    return render(request, "photobooth/join_event.html", {"form": form})
+    """Join event with code - uses REST API via JavaScript"""
+    return render(request, "photobooth/join_event.html")
 
 
 # Photobooth Interface Views

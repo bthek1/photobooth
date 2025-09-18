@@ -10,31 +10,19 @@
                 <h3>Create New Event</h3>
             </div>
             <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    {% if form.errors %}
-                        <div class="alert alert-danger">
-                            {{ form.errors }}
-                        </div>
-                    {% endif %}
+                <form id="createEventForm">
+                    <div id="error-messages" class="alert alert-danger d-none"></div>
+                    <div id="success-messages" class="alert alert-success d-none"></div>
                     
                     <div class="mb-3">
-                        <label for="{{ form.name.id_for_label }}" class="form-label">Event Name</label>
-                        {{ form.name }}
-                        <div class="form-text">Give your event a memorable name (e.g., "John & Jane Wedding")</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.date.id_for_label }}" class="form-label">Event Date</label>
-                        {{ form.date }}
-                        <div class="form-text">When is your event taking place?</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.qr_base_url.id_for_label }}" class="form-label">Website URL (Optional)</label>
-                        {{ form.qr_base_url }}
-                        <div class="form-text">Your website URL for QR codes (optional)</div>
+                        <label for="eventName" class="form-label">Event Name</label>
+                        <input type="text" 
+                               id="eventName" 
+                               name="name" 
+                               class="form-control" 
+                               placeholder="e.g., John & Jane Wedding"
+                               required>
+                        <div class="form-text">Give your event a memorable name</div>
                     </div>
                     
                     <div class="alert alert-info">
@@ -46,7 +34,7 @@
                         <a href="{% url 'photobooth:event_list' %}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Back to Events
                         </a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="createButton">
                             <i class="fas fa-plus"></i> Create Event
                         </button>
                     </div>
