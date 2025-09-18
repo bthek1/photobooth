@@ -1,7 +1,7 @@
 {% extends "_base.html" %}
 {% load static %}
 
-{% block title %}Photo Gallery{% endblock title %}
+{% block title %}{{ event.name }} - Photo Gallery{% endblock title %}
 
 {% block content %}
 <div class="container-fluid">
@@ -10,19 +10,16 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1>Photo Gallery</h1>
-                    {% if session %}
-                        <h4 class="text-muted">{{ session.name }}</h4>
-                    {% endif %}
+                    <h4 class="text-muted">{{ event.name }}</h4>
+                    <p class="text-muted">Event Code: <strong>{{ event.code }}</strong></p>
                 </div>
                 <div>
-                    <a href="{% url 'photobooth:interface' %}" class="btn btn-primary">
+                    <a href="{% url 'photobooth:event_booth' event.id %}" class="btn btn-primary">
                         <i class="fas fa-camera"></i> Back to Photobooth
                     </a>
-                    {% if session %}
-                        <a href="{% url 'photobooth:gallery_qr' session_id=session.id %}" class="btn btn-info" target="_blank">
-                            <i class="fas fa-qrcode"></i> Gallery QR Code
-                        </a>
-                    {% endif %}
+                    <a href="{% url 'photobooth:event_gallery_qr' event.id %}" class="btn btn-info" target="_blank">
+                        <i class="fas fa-qrcode"></i> Gallery QR Code
+                    </a>
                 </div>
             </div>
         </div>
@@ -49,39 +46,42 @@
                         </div>
                         <div class="card-body p-2">
                             <small class="text-muted">
-                                {{ photo.taken_at|date:"M d, Y H:i" }}
                                 {% if photo.guest_name %}
-                                    - {{ photo.guest_name }}
+                                    {{ photo.guest_name }} • 
                                 {% endif %}
+                                {{ photo.taken_at|date:"M d, g:i A" }}
                             </small>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Photo Modal -->
-                <div class="modal fade" id="photoModal{{ photo.id }}" tabindex="-1">
-                    <div class="modal-dialog modal-xl">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">
-                                    Photo from {{ photo.taken_at|date:"M d, Y H:i" }}
-                                    {% if photo.guest_name %}
-                                        - {{ photo.guest_name }}
-                                    {% endif %}
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body text-center">
-                                <img src="{{ photo.image.url }}" class="img-fluid" alt="Full size photo">
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-primary" onclick="downloadPhoto('{{ photo.id }}')">
-                                    <i class="fas fa-download"></i> Download
-                                </button>
-                                <button type="button" class="btn btn-info" onclick="showQRCode('{{ photo.id }}')">
-                                    <i class="fas fa-qrcode"></i> QR Code
-                                </button>
+                    
+                    <!-- Photo Modal -->
+                    <div class="modal fade" id="photoModal{{ photo.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        {% if photo.guest_name %}{{ photo.guest_name }}'s Photo{% else %}Photo{% endif %}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <img src="{{ photo.image.url }}" class="img-fluid" alt="Photo">
+                                    <div class="mt-3">
+                                        <p class="text-muted">
+                                            Taken on {{ photo.taken_at|date:"l, M d, Y \a\t g:i A" }}
+                                            {% if photo.guest_name %}by {{ photo.guest_name }}{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-primary" onclick="downloadPhoto('{{ photo.id }}')">
+                                        <i class="fas fa-download"></i> Download
+                                    </button>
+                                    <button type="button" class="btn btn-info" onclick="showQRCode('{{ photo.id }}')">
+                                        <i class="fas fa-qrcode"></i> QR Code
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -91,45 +91,47 @@
         
         <!-- Pagination -->
         {% if is_paginated %}
-            <nav aria-label="Photo gallery pagination">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page=1">First</a>
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="Photo gallery pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">First</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
                         </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                        </li>
-                    {% endif %}
-                    
-                    <li class="page-item active">
-                        <span class="page-link">
-                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                        </span>
-                    </li>
-                    
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
         {% endif %}
     {% else %}
         <div class="row">
-            <div class="col-12 text-center">
-                <div class="empty-gallery">
-                    <i class="fas fa-camera fa-5x text-muted mb-3"></i>
-                    <h3>No photos yet!</h3>
-                    <p class="text-muted">Start taking photos to build your gallery.</p>
-                    <a href="{% url 'photobooth:interface' %}" class="btn btn-primary btn-lg">
-                        <i class="fas fa-camera"></i> Take First Photo
-                    </a>
-                </div>
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-images fa-4x text-muted mb-3"></i>
+                <h3 class="text-muted">No Photos Yet</h3>
+                <p class="text-muted">Be the first to take a photo at this event!</p>
+                <a href="{% url 'photobooth:event_booth' event.id %}" class="btn btn-primary">
+                    <i class="fas fa-camera"></i> Take First Photo
+                </a>
             </div>
         </div>
     {% endif %}
@@ -144,8 +146,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <p>Scan this QR code to download the photo:</p>
                 <div id="qr-code-display"></div>
+                <p class="mt-3 text-muted">Scan this QR code to download the photo</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -156,18 +158,70 @@
 {% endblock content %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/photobooth.css' %}">
+<style>
+.photo-card {
+    transition: transform 0.2s;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.photo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.card-img-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.photo-thumbnail {
+    height: 200px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.photo-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    opacity: 0;
+    transition: opacity 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.card-img-container:hover .photo-overlay {
+    opacity: 1;
+}
+
+.card-img-container:hover .photo-thumbnail {
+    transform: scale(1.05);
+}
+
+.photo-actions button {
+    margin: 0 5px;
+}
+</style>
 {% endblock extra_css %}
 
 {% block extra_js %}
 <script>
 function downloadPhoto(photoId) {
-    window.open(`/photobooth/download/${photoId}/`, '_blank');
+    window.open(`{% url 'photobooth:photo_download' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', photoId), '_blank');
 }
 
 function showQRCode(photoId) {
-    const qrDisplay = document.getElementById('qr-code-display');
-    qrDisplay.innerHTML = `<img src="/photobooth/qr/${photoId}/" class="img-fluid" alt="QR Code">`;
+    // Load QR code image
+    const qrUrl = `{% url 'photobooth:photo_qr' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', photoId);
+    document.getElementById('qr-code-display').innerHTML = `<img src="${qrUrl}" class="img-fluid" alt="QR Code">`;
+    
+    // Show modal
     new bootstrap.Modal(document.getElementById('qrModal')).show();
 }
 </script>

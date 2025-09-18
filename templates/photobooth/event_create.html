@@ -1,0 +1,58 @@
+{% extends "_base.html" %}
+
+{% block title %}Create Event - Photobooth{% endblock title %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Create New Event</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            {{ form.errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Event Name</label>
+                        {{ form.name }}
+                        <div class="form-text">Give your event a memorable name (e.g., "John & Jane Wedding")</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.date.id_for_label }}" class="form-label">Event Date</label>
+                        {{ form.date }}
+                        <div class="form-text">When is your event taking place?</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.qr_base_url.id_for_label }}" class="form-label">Website URL (Optional)</label>
+                        {{ form.qr_base_url }}
+                        <div class="form-text">Your website URL for QR codes (optional)</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> A unique 6-character code will be automatically generated for your event. Share this code with your guests so they can join and take photos!
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'photobooth:event_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Events
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Event
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

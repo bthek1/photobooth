@@ -4,34 +4,100 @@ import uuid
 from io import BytesIO
 
 import qrcode
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.files.base import ContentFile
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
-from django.urls import reverse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import ListView
+from django.views.generic import CreateView, DetailView, ListView
 
-from .models import Photo, PhotoboothSession, PhotoboothSettings
-
-
-class PhotoboothView(ListView):
-    """Main photobooth interface view"""
-
-    model = PhotoboothSession
-    template_name = "photobooth/interface.html"
-    context_object_name = "sessions"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["settings"] = PhotoboothSettings.get_settings()
-        context["active_session"] = PhotoboothSession.objects.filter(
-            is_active=True
-        ).first()
-        return context
+from .forms import CustomUserCreationForm, EventCodeForm, EventForm
+from .models import Event, Photo, PhotoboothSettings
 
 
-class GalleryView(ListView):
-    """Gallery view for displaying photos"""
+# Authentication Views
+def signup_view(request):
+    """User registration view"""
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            messages.success(request, "Account created successfully!")
+            return redirect("photobooth:event_list")
+    else:
+        form = CustomUserCreationForm()
+    return render(request, "account/signup.html", {"form": form})
+
+
+# Event Management Views
+class EventListView(LoginRequiredMixin, ListView):
+    """List user's events"""
+
+    model = Event
+    template_name = "photobooth/event_list.html"
+    context_object_name = "events"
+
+    def get_queryset(self):
+        return Event.objects.filter(created_by=self.request.user)
+
+
+class EventCreateView(LoginRequiredMixin, CreateView):
+    """Create new event"""
+
+    model = Event
+    form_class = EventForm
+    template_name = "photobooth/event_create.html"
+    success_url = reverse_lazy("photobooth:event_list")
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(
+            self.request,
+            f'Event "{form.instance.name}" created with code: {form.instance.code}',
+        )
+        return super().form_valid(form)
+
+
+class EventDetailView(LoginRequiredMixin, DetailView):
+    """Event detail view for owners"""
+
+    model = Event
+    template_name = "photobooth/event_detail.html"
+    context_object_name = "event"
+
+    def get_queryset(self):
+        return Event.objects.filter(created_by=self.request.user)
+
+
+def join_event_view(request):
+    """Join event with code"""
+    if request.method == "POST":
+        form = EventCodeForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data["code"]
+            event = Event.objects.get(code=code, is_active=True)
+            return redirect("photobooth:event_booth", event_id=event.id)
+    else:
+        form = EventCodeForm()
+    return render(request, "photobooth/join_event.html", {"form": form})
+
+
+# Photobooth Interface Views
+def event_booth_view(request, event_id):
+    """Main photobooth interface for an event"""
+    event = get_object_or_404(Event, id=event_id, is_active=True)
+    settings = PhotoboothSettings.get_settings()
+    return render(
+        request, "photobooth/booth.html", {"event": event, "settings": settings}
+    )
+
+
+class EventGalleryView(ListView):
+    """Gallery view for an event's photos"""
 
     model = Photo
     template_name = "photobooth/gallery.html"
@@ -39,19 +105,17 @@ class GalleryView(ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        session_id = self.kwargs.get("session_id")
-        if session_id:
-            return Photo.objects.filter(session_id=session_id, is_processed=True)
-        return Photo.objects.filter(is_processed=True)
+        event_id = self.kwargs.get("event_id")
+        return Photo.objects.filter(session_id=event_id, is_processed=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        session_id = self.kwargs.get("session_id")
-        if session_id:
-            context["session"] = get_object_or_404(PhotoboothSession, id=session_id)
+        event_id = self.kwargs.get("event_id")
+        context["event"] = get_object_or_404(Event, id=event_id)
         return context
 
 
+# Photo Management Views
 @csrf_exempt
 def capture_photo(request):
     """Handle photo capture from webcam"""
@@ -61,17 +125,17 @@ def capture_photo(request):
     try:
         data = json.loads(request.body)
         image_data = data.get("image")
-        session_id = data.get("session_id")
+        event_id = data.get("event_id")
         guest_name = data.get("guest_name", "")
         guest_email = data.get("guest_email", "")
 
-        if not image_data or not session_id:
+        if not image_data or not event_id:
             return JsonResponse(
-                {"error": "Image data and session ID required"}, status=400
+                {"error": "Image data and event ID required"}, status=400
             )
 
-        # Get the session
-        session = get_object_or_404(PhotoboothSession, id=session_id)
+        # Get the event
+        event = get_object_or_404(Event, id=event_id, is_active=True)
 
         # Decode base64 image
         format, imgstr = image_data.split(";base64,")
@@ -80,7 +144,7 @@ def capture_photo(request):
 
         # Create photo record
         photo = Photo.objects.create(
-            session=session,
+            session=event,
             guest_name=guest_name,
             guest_email=guest_email,
             is_processed=True,
@@ -94,7 +158,9 @@ def capture_photo(request):
                 "success": True,
                 "photo_id": str(photo.id),
                 "download_url": photo.download_url,
-                "gallery_url": reverse("photobooth:gallery"),
+                "gallery_url": reverse(
+                    "photobooth:event_gallery", kwargs={"event_id": event_id}
+                ),
             }
         )
 
@@ -146,13 +212,13 @@ def generate_qr_code(request, photo_id):
     return response
 
 
-def session_gallery_qr(request, session_id):
-    """Generate QR code for session gallery"""
-    session = get_object_or_404(PhotoboothSession, id=session_id)
+def event_gallery_qr(request, event_id):
+    """Generate QR code for event gallery"""
+    event = get_object_or_404(Event, id=event_id)
 
     # Build full URL for gallery
     gallery_url = request.build_absolute_uri(
-        reverse("photobooth:session_gallery", kwargs={"session_id": session_id})
+        reverse("photobooth:event_gallery", kwargs={"event_id": event_id})
     )
 
     # Generate QR code
@@ -169,11 +235,12 @@ def session_gallery_qr(request, session_id):
     buffer.seek(0)
 
     response = HttpResponse(buffer.getvalue(), content_type="image/png")
-    response["Content-Disposition"] = f'inline; filename="gallery_qr_{session_id}.png"'
+    response["Content-Disposition"] = f'inline; filename="gallery_qr_{event_id}.png"'
 
     return response
 
 
+# API Views
 def get_camera_settings(request):
     """Get camera settings for frontend"""
     settings = PhotoboothSettings.get_settings()
@@ -190,15 +257,20 @@ def get_camera_settings(request):
     )
 
 
-def get_active_session(request):
-    """Get active session for frontend"""
-    session = PhotoboothSession.objects.filter(is_active=True).first()
-    if session:
-        return JsonResponse(
-            {
-                "id": str(session.id),
-                "name": session.name,
-                "photo_count": session.photo_count,
-            }
-        )
-    return JsonResponse({"error": "No active session"}, status=404)
+def get_event_info(request, event_id):
+    """Get event information for frontend"""
+    event = get_object_or_404(Event, id=event_id, is_active=True)
+    return JsonResponse(
+        {
+            "id": str(event.id),
+            "name": event.name,
+            "code": event.code,
+            "photo_count": event.photo_count,
+        }
+    )
+
+
+# Home/Landing Views
+def home_view(request):
+    """Landing page"""
+    return render(request, "photobooth/home.html")

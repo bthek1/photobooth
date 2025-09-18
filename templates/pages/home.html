@@ -12,12 +12,18 @@
         <p class="lead mb-4">Professional photobooth software for weddings and special events. 
            Capture memories, generate QR codes, and share photos instantly!</p>
         <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-          <a href="{% url 'photobooth:interface' %}" class="btn btn-light btn-lg px-4 me-md-2">
-            <i class="fas fa-camera"></i> Start Photobooth
+          <a href="{% url 'photobooth:join_event' %}" class="btn btn-light btn-lg px-4 me-md-2">
+            <i class="fas fa-camera"></i> Join Event
           </a>
-          <a href="{% url 'photobooth:gallery' %}" class="btn btn-outline-light btn-lg px-4">
-            <i class="fas fa-images"></i> View Gallery
+          {% if user.is_authenticated %}
+          <a href="{% url 'photobooth:event_list' %}" class="btn btn-outline-light btn-lg px-4">
+            <i class="fas fa-images"></i> My Events
           </a>
+          {% else %}
+          <a href="{% url 'account_login' %}" class="btn btn-outline-light btn-lg px-4">
+            <i class="fas fa-sign-in-alt"></i> Login
+          </a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -76,11 +82,15 @@
       <p class="text-muted mb-4">Set up your photobooth in minutes and let your guests capture unforgettable moments</p>
       {% if user.is_authenticated and user.is_superuser %}
         <a href="{% url 'admin:index' %}" class="btn btn-primary btn-lg">
-          <i class="fas fa-settings"></i> Manage Photobooth
+          <i class="fas fa-settings"></i> Manage Events
+        </a>
+      {% elif user.is_authenticated %}
+        <a href="{% url 'photobooth:event_list' %}" class="btn btn-primary btn-lg">
+          <i class="fas fa-calendar"></i> My Events
         </a>
       {% else %}
-        <a href="{% url 'photobooth:interface' %}" class="btn btn-primary btn-lg">
-          <i class="fas fa-camera"></i> Try the Photobooth
+        <a href="{% url 'photobooth:join_event' %}" class="btn btn-primary btn-lg">
+          <i class="fas fa-camera"></i> Join Event
         </a>
       {% endif %}
     </div>

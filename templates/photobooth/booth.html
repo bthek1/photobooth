@@ -1,7 +1,7 @@
 {% extends "_base.html" %}
 {% load static %}
 
-{% block title %}Wedding Photobooth{% endblock title %}
+{% block title %}{{ event.name }} - Photobooth{% endblock title %}
 
 {% block content %}
 <div class="container-fluid h-100">
@@ -11,6 +11,7 @@
             <div class="card h-100 photobooth-camera-card">
                 <div class="card-header bg-primary text-white text-center">
                     <h2 class="mb-0">{{ settings.welcome_message }}</h2>
+                    <p class="mb-0">{{ event.name }}</p>
                     <p class="mb-0">{{ settings.instructions }}</p>
                 </div>
                 <div class="card-body d-flex flex-column justify-content-center align-items-center position-relative">
@@ -40,18 +41,17 @@
         
         <!-- Controls and Info Section -->
         <div class="col-md-4 d-flex flex-column">
-            <!-- Session Info -->
-            {% if active_session %}
+            <!-- Event Info -->
             <div class="card mb-3">
                 <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">Current Event</h5>
+                    <h5 class="mb-0">Event: {{ event.name }}</h5>
                 </div>
                 <div class="card-body">
-                    <h6>{{ active_session.name }}</h6>
-                    <p class="mb-1"><small class="text-muted">Photos taken: <span id="photo-count">{{ active_session.photo_count }}</span></small></p>
+                    <p class="mb-1"><small class="text-muted">Event Code: <strong>{{ event.code }}</strong></small></p>
+                    <p class="mb-1"><small class="text-muted">Photos taken: <span id="photo-count">{{ event.photo_count }}</span></small></p>
+                    <p class="mb-1"><small class="text-muted">Date: {{ event.date|date:"M d, Y" }}</small></p>
                 </div>
             </div>
-            {% endif %}
             
             <!-- Guest Information -->
             <div class="card mb-3">
@@ -81,9 +81,7 @@
                         <!-- Photos will be loaded here -->
                     </div>
                     <div class="text-center mt-2">
-                        {% if event %}
                         <a href="{% url 'photobooth:event_gallery' event.pk %}" class="btn btn-sm btn-outline-success">View All Photos</a>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -127,6 +125,15 @@
         </div>
     </div>
 </div>
+
+<!-- Event Info for JavaScript -->
+<script>
+    window.eventData = {
+        id: '{{ event.id }}',
+        name: '{{ event.name }}',
+        code: '{{ event.code }}'
+    };
+</script>
 {% endblock content %}
 
 {% block extra_css %}

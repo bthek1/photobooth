@@ -1,0 +1,112 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ event.name }} - Event Details{% endblock title %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>{{ event.name }}</h3>
+                <span class="badge {% if event.is_active %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                    {% if event.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Event Information</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Event Code:</strong></td>
+                                <td><span class="badge bg-primary fs-6">{{ event.code }}</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Date:</strong></td>
+                                <td>{{ event.date|date:"l, M d, Y g:i A" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Photos Taken:</strong></td>
+                                <td>{{ event.photo_count }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Created:</strong></td>
+                                <td>{{ event.created_at|date:"M d, Y g:i A" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <h5>Share Your Event</h5>
+                        <div class="alert alert-light">
+                            <p>Share this code with your guests:</p>
+                            <h2 class="text-primary">{{ event.code }}</h2>
+                            <p class="small text-muted">They can enter this code at the "Join Event" page</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>Quick Actions</h5>
+                        <div class="btn-group w-100" role="group">
+                            <a href="{% url 'photobooth:event_booth' event.pk %}" class="btn btn-success">
+                                <i class="fas fa-camera"></i> Open Photobooth
+                            </a>
+                            <a href="{% url 'photobooth:event_gallery' event.pk %}" class="btn btn-info">
+                                <i class="fas fa-images"></i> View Gallery ({{ event.photo_count }} photos)
+                            </a>
+                            <a href="{% url 'photobooth:event_gallery_qr' event.pk %}" class="btn btn-warning" target="_blank">
+                                <i class="fas fa-qrcode"></i> Gallery QR Code
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Instructions for Guests</h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Go to the Photobooth website</li>
+                    <li>Click "Join Event"</li>
+                    <li>Enter the code: <strong>{{ event.code }}</strong></li>
+                    <li>Start taking photos!</li>
+                </ol>
+                
+                <div class="alert alert-success small">
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>Tip:</strong> You can also share the direct link to the photobooth for this event.
+                </div>
+            </div>
+        </div>
+        
+        {% if event.photo_count > 0 %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Recent Photos</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-center">
+                    <a href="{% url 'photobooth:event_gallery' event.pk %}" class="btn btn-outline-primary">
+                        View All {{ event.photo_count }} Photos
+                    </a>
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-12">
+        <a href="{% url 'photobooth:event_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to My Events
+        </a>
+    </div>
+</div>
+{% endblock content %}

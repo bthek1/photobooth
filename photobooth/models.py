@@ -1,6 +1,9 @@
 import os
+import secrets
+import string
 import uuid
 
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -13,23 +16,43 @@ def photo_upload_path(instance, filename):
     return os.path.join("photos", str(instance.session.id), filename)
 
 
-class PhotoboothSession(models.Model):
+def generate_event_code():
+    """Generate a random 6-character code for events"""
+    characters = string.ascii_uppercase + string.digits
+    while True:
+        code = "".join(secrets.choice(characters) for _ in range(6))
+        # Ensure the code is unique
+        if not Event.objects.filter(code=code).exists():
+            return code
+
+
+class Event(models.Model):
     """
-    Represents a photobooth session (e.g., a wedding event)
+    Represents an event (e.g., wedding, party) for photobooth sessions
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(
         max_length=200, help_text="Event name (e.g., 'John & Jane Wedding')"
     )
+    code = models.CharField(
+        max_length=8,
+        unique=True,
+        default=generate_event_code,
+        help_text="Easy random code for joining the event",
+    )
     date = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(
-        default=True, help_text="Whether this session is currently active"
+        default=True, help_text="Whether this event is currently active"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    # QR Code settings
+    created_by = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        related_name="events",
+        help_text="User who created the event",
+    )
     qr_base_url = models.URLField(
         blank=True, help_text="Base URL for QR codes (e.g., your domain)"
     )
@@ -38,10 +61,10 @@ class PhotoboothSession(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.code})"
 
     def get_absolute_url(self):
-        return reverse("photobooth:session_gallery", kwargs={"session_id": self.id})
+        return reverse("photobooth:event_gallery", kwargs={"event_id": self.id})
 
     @property
     def photo_count(self):
@@ -50,13 +73,11 @@ class PhotoboothSession(models.Model):
 
 class Photo(models.Model):
     """
-    Represents a single photo taken in the photobooth
+    Represents a single photo taken in the photobooth, linked to an event
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    session = models.ForeignKey(
-        PhotoboothSession, on_delete=models.CASCADE, related_name="photos"
-    )
+    session = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="photos")
     image = models.ImageField(upload_to=photo_upload_path)
     thumbnail = models.ImageField(upload_to=photo_upload_path, blank=True, null=True)
 

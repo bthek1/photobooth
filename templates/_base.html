@@ -45,8 +45,11 @@
               📸 Photobooth
             </a>
             <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="{% url 'photobooth:interface' %}">Take Photos</a></li>
-              <li><a class="dropdown-item" href="{% url 'photobooth:gallery' %}">View Gallery</a></li>
+              <li><a class="dropdown-item" href="{% url 'photobooth:join_event' %}">Join Event</a></li>
+              {% if user.is_authenticated %}
+              <li><a class="dropdown-item" href="{% url 'photobooth:event_list' %}">My Events</a></li>
+              <li><a class="dropdown-item" href="{% url 'photobooth:event_create' %}">Create Event</a></li>
+              {% endif %}
             </ul>
           </li>
           {% if user.is_authenticated and user.is_superuser %}
@@ -78,7 +81,7 @@
         <div class="mr-auto">
           <form class="form d-flex">
             <a href="{% url 'account_login' %}" class="btn btn-outline-secondary">Log in</a>
-            <a href="{% url 'account_signup' %}" class="btn btn-primary ms-2">Sign up</a>
+            <a href="{% url 'photobooth:signup' %}" class="btn btn-primary ms-2">Sign up</a>
           </form>
         </div>
         {% endif %}

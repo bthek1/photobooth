@@ -1,4 +1,4 @@
-// Wedding Photobooth JavaScript
+// Event Photobooth JavaScript
 
 class PhotoboothCamera {
     constructor() {
@@ -13,19 +13,23 @@ class PhotoboothCamera {
         
         this.stream = null;
         this.isCapturing = false;
-        this.activeSession = null;
+        this.currentEvent = null;
         this.cameraSettings = null;
+        this.lastPhotoId = null;
         
         this.init();
     }
     
     async init() {
         try {
+            // Load event data from global variable
+            if (window.eventData) {
+                this.currentEvent = window.eventData;
+                console.log('Loaded event:', this.currentEvent);
+            }
+            
             // Load camera settings
             await this.loadCameraSettings();
-            
-            // Load active session
-            await this.loadActiveSession();
             
             // Start camera
             await this.startCamera();
@@ -55,20 +59,6 @@ class PhotoboothCamera {
                 countdown: 3,
                 quality: 95
             };
-        }
-    }
-    
-    async loadActiveSession() {
-        try {
-            const response = await fetch('/photobooth/api/active-session/');
-            if (response.ok) {
-                this.activeSession = await response.json();
-                this.updatePhotoCount(this.activeSession.photo_count);
-            } else {
-                console.warn('No active session found');
-            }
-        } catch (error) {
-            console.error('Failed to load active session:', error);
         }
     }
     
@@ -138,8 +128,8 @@ class PhotoboothCamera {
     async capturePhoto() {
         if (this.isCapturing) return;
         
-        if (!this.activeSession) {
-            this.showError('No active session. Please contact the event organizer.');
+        if (!this.currentEvent) {
+            this.showError('No event data available. Please refresh the page.');
             return;
         }
         
@@ -151,22 +141,13 @@ class PhotoboothCamera {
             await this.startCountdown();
             
             // Capture the photo
-            const photoData = this.captureFrame();
+            const imageData = this.captureFrame();
             
-            // Show flash effect
+            // Flash effect
             this.showFlash();
             
-            // Upload photo
-            const result = await this.uploadPhoto(photoData);
-            
-            if (result.success) {
-                this.currentPhotoId = result.photo_id;
-                this.showPhotoTaken(photoData);
-                this.updatePhotoCount();
-                this.loadRecentPhotos();
-            } else {
-                throw new Error(result.error || 'Failed to save photo');
-            }
+            // Send photo to server
+            await this.sendPhoto(imageData);
             
         } catch (error) {
             console.error('Failed to capture photo:', error);
@@ -178,23 +159,28 @@ class PhotoboothCamera {
     }
     
     async startCountdown() {
-        const countdownNumber = this.countdownOverlay.querySelector('.countdown-number');
-        this.countdownOverlay.classList.remove('d-none');
-        
-        for (let i = this.cameraSettings.countdown; i > 0; i--) {
-            countdownNumber.textContent = i;
-            countdownNumber.style.animation = 'none';
-            // Force reflow
-            countdownNumber.offsetHeight;
-            countdownNumber.style.animation = 'pulse 1s ease-in-out';
+        return new Promise((resolve) => {
+            const countdownNumber = this.countdownOverlay.querySelector('.countdown-number');
+            this.countdownOverlay.classList.remove('d-none');
             
-            await this.sleep(1000);
-        }
-        
-        this.countdownOverlay.classList.add('d-none');
+            let count = this.cameraSettings.countdown;
+            countdownNumber.textContent = count;
+            
+            const countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownNumber.textContent = count;
+                } else {
+                    clearInterval(countdownInterval);
+                    this.countdownOverlay.classList.add('d-none');
+                    resolve();
+                }
+            }, 1000);
+        });
     }
     
     captureFrame() {
+        // Create canvas to capture video frame
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         
@@ -204,7 +190,7 @@ class PhotoboothCamera {
         // Draw video frame to canvas
         context.drawImage(this.video, 0, 0);
         
-        // Convert to base64 JPEG
+        // Convert to base64
         return canvas.toDataURL('image/jpeg', this.cameraSettings.quality / 100);
     }
     
@@ -212,13 +198,13 @@ class PhotoboothCamera {
         this.flashEffect.classList.remove('d-none');
         setTimeout(() => {
             this.flashEffect.classList.add('d-none');
-        }, 300);
+        }, 200);
     }
     
-    async uploadPhoto(photoData) {
-        const payload = {
-            image: photoData,
-            session_id: this.activeSession.id,
+    async sendPhoto(imageData) {
+        const photoData = {
+            image: imageData,
+            event_id: this.currentEvent.id,
             guest_name: this.guestNameInput.value.trim(),
             guest_email: this.guestEmailInput.value.trim()
         };
@@ -226,111 +212,128 @@ class PhotoboothCamera {
         const response = await fetch('/photobooth/api/capture/', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(photoData)
         });
         
-        return await response.json();
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save photo');
+        }
+        
+        const result = await response.json();
+        this.lastPhotoId = result.photo_id;
+        
+        // Update photo count
+        this.updatePhotoCount();
+        
+        // Show photo preview
+        this.showPhotoTakenModal(imageData);
+        
+        // Clear guest info (optional)
+        // this.guestNameInput.value = '';
+        // this.guestEmailInput.value = '';
+        
+        // Refresh recent photos
+        this.loadRecentPhotos();
     }
     
-    showPhotoTaken(photoData) {
+    showPhotoTakenModal(imageData) {
+        // Show photo preview
         const previewContainer = document.getElementById('photo-preview-container');
-        previewContainer.innerHTML = `
-            <img src="${photoData}" class="img-fluid rounded" alt="Captured photo" style="max-height: 400px;">
-        `;
+        previewContainer.innerHTML = `<img src="${imageData}" class="img-fluid" alt="Captured Photo">`;
         
+        // Show modal
         const modal = new bootstrap.Modal(document.getElementById('photoTakenModal'));
         modal.show();
     }
     
-    showQRCode() {
-        if (!this.currentPhotoId) return;
+    async updatePhotoCount() {
+        if (!this.currentEvent) return;
         
-        const qrContainer = document.getElementById('qr-code-container');
-        const qrCode = document.getElementById('qr-code');
-        
-        qrCode.innerHTML = `<img src="/photobooth/qr/${this.currentPhotoId}/" class="img-fluid" alt="QR Code">`;
-        qrContainer.classList.remove('d-none');
-    }
-    
-    downloadPhoto() {
-        if (!this.currentPhotoId) return;
-        
-        window.open(`/photobooth/download/${this.currentPhotoId}/`, '_blank');
-    }
-    
-    retakePhoto() {
-        // This would be used if we had a photo preview mode
-        // For now, just ensure camera is running
-        if (!this.stream) {
-            this.startCamera();
-        }
-    }
-    
-    updatePhotoCount(count = null) {
-        if (this.photoCountElement) {
-            if (count !== null) {
-                this.photoCountElement.textContent = count;
-            } else {
-                // Increment current count
-                const currentCount = parseInt(this.photoCountElement.textContent) || 0;
-                this.photoCountElement.textContent = currentCount + 1;
+        try {
+            const response = await fetch(`/photobooth/api/event/${this.currentEvent.id}/info/`);
+            if (response.ok) {
+                const eventInfo = await response.json();
+                if (this.photoCountElement) {
+                    this.photoCountElement.textContent = eventInfo.photo_count;
+                }
             }
+        } catch (error) {
+            console.error('Failed to update photo count:', error);
         }
     }
     
     async loadRecentPhotos() {
-        try {
-            const response = await fetch('/photobooth/gallery/');
-            if (response.ok) {
-                // This would load recent photos for the preview
-                // For now, we'll leave this as a placeholder
-                console.log('Recent photos loaded');
-            }
-        } catch (error) {
-            console.error('Failed to load recent photos:', error);
-        }
+        // This would load recent photos for the event
+        // Implementation depends on if you want to show recent photos
+        console.log('Loading recent photos for event:', this.currentEvent?.name);
+    }
+    
+    showQRCode() {
+        if (!this.lastPhotoId) return;
+        
+        const qrContainer = document.getElementById('qr-code-container');
+        const qrCodeDiv = document.getElementById('qr-code');
+        
+        // Load QR code image
+        qrCodeDiv.innerHTML = `<img src="/photobooth/qr/photo/${this.lastPhotoId}/" class="img-fluid" alt="QR Code">`;
+        qrContainer.classList.remove('d-none');
+    }
+    
+    downloadPhoto() {
+        if (!this.lastPhotoId) return;
+        
+        // Open download URL in new window
+        window.open(`/photobooth/download/${this.lastPhotoId}/`, '_blank');
+    }
+    
+    retakePhoto() {
+        // Hide retake button, show capture button
+        this.retakeBtn.classList.add('d-none');
+        this.captureBtn.classList.remove('d-none');
+        
+        // Could add additional retake logic here
     }
     
     showError(message) {
-        // Show error message to user
-        const errorAlert = document.createElement('div');
-        errorAlert.className = 'alert alert-danger alert-dismissible fade show';
-        errorAlert.innerHTML = `
+        // Create or show error alert
+        const alertContainer = document.createElement('div');
+        alertContainer.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+        alertContainer.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+        alertContainer.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         
-        document.body.insertBefore(errorAlert, document.body.firstChild);
+        document.body.appendChild(alertContainer);
         
-        // Auto-dismiss after 5 seconds
+        // Auto remove after 5 seconds
         setTimeout(() => {
-            if (errorAlert.parentNode) {
-                errorAlert.remove();
+            if (alertContainer.parentNode) {
+                alertContainer.remove();
             }
         }, 5000);
     }
-    
-    sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    
-    destroy() {
-        if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
-        }
-    }
 }
 
-// Initialize photobooth when DOM is loaded
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.photobooth = new PhotoboothCamera();
-});
-
-// Cleanup when page is unloaded
-window.addEventListener('beforeunload', () => {
-    if (window.photobooth) {
-        window.photobooth.destroy();
+    // Only initialize if we're on a page with camera elements
+    if (document.getElementById('camera-video')) {
+        new PhotoboothCamera();
     }
 });
+
+// Global functions for gallery
+function downloadPhoto(photoId) {
+    window.open(`/photobooth/download/${photoId}/`, '_blank');
+}
+
+function showQRCode(photoId) {
+    // This function is used in gallery template
+    const qrUrl = `/photobooth/qr/photo/${photoId}/`;
+    document.getElementById('qr-code-display').innerHTML = `<img src="${qrUrl}" class="img-fluid" alt="QR Code">`;
+    new bootstrap.Modal(document.getElementById('qrModal')).show();
+}
